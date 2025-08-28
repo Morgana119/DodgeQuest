@@ -6,17 +6,19 @@ public class PlayerController : MonoBehaviour
     [Header("Movimiento")]
     public float moveSpeed = 6f;
     [Range(0.1f, 1f)] public float slowMultiplier = 0.4f;
-    public float clampPadding = 0.2f; // margen para no tocar bordes
+
+    [Header("Límites de movimiento")]
+    public float minX = -4.5f;
+    public float maxX =  1.3f;
+    public float minY = -4.5f;
+    public float maxY =  2.5f;
 
     [Header("Disparo")]
-    public GameObject playerBulletPrefab;   
-    public float fireRate = 0.12f; // menos = más rápido
+    public GameObject playerBulletPrefab;
+    public float fireRate = 0.12f;
     public float bulletSpeed = 12f;
     public float bulletLife = 3f;
     public float shootAngle = 90f; // 90° = hacia arriba
-
-    [Header("Cámara")]
-    public Camera gameplayCam;
     
     private InputAction moveAction;
     private InputAction fireAction;
@@ -78,7 +80,8 @@ public class PlayerController : MonoBehaviour
         float speed = moveSpeed * (slow ? slowMultiplier : 1f);
 
         transform.position += (Vector3)(dir * speed * Time.deltaTime);
-        ClampToCamera();
+        ClampToWorldLimits();
+
     }
 
     void HandleShooting()
@@ -107,18 +110,14 @@ public class PlayerController : MonoBehaviour
             b.speed       = bulletSpeed;
             b.bulletLife  = bulletLife;
             b.rotation    = rot.eulerAngles.z;
-            b.gameplayCam = (gameplayCam != null) ? gameplayCam : Camera.main;
         }
     }
 
-    void ClampToCamera()
+    void ClampToWorldLimits()
     {
-        var cam = (gameplayCam != null) ? gameplayCam : Camera.main;
-        if (cam == null) return;
-
-        Vector3 v = cam.WorldToViewportPoint(transform.position);
-        v.x = Mathf.Clamp(v.x, 0f + clampPadding, 1f - clampPadding);
-        v.y = Mathf.Clamp(v.y, 0f + clampPadding, 1f - clampPadding);
-        transform.position = cam.ViewportToWorldPoint(v);
+        Vector3 pos = transform.position;
+        pos.x = Mathf.Clamp(pos.x, minX, maxX);
+        pos.y = Mathf.Clamp(pos.y, minY, maxY);
+        transform.position = pos;
     }
 }

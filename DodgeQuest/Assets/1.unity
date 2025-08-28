@@ -676,7 +676,13 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: 'Balas activas: 0'
+  m_text: 'Active Bullets 0
+
+
+    Player: 0
+
+
+    Enemy: 0'
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -999,13 +1005,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 6
   slowMultiplier: 0.4
-  clampPadding: 0.2
+  minX: -4.5
+  maxX: 1.3
+  minY: -4.5
+  maxY: 2.5
   playerBulletPrefab: {fileID: 1818211600377138, guid: 15e42fc786cf33d4e8e26c0543aa563b, type: 3}
   fireRate: 0.12
   bulletSpeed: 12
   bulletLife: 3
   shootAngle: 90
-  gameplayCam: {fileID: 640582859}
 --- !u!1 &1675101530
 GameObject:
   m_ObjectHideFlags: 0
@@ -1113,12 +1121,19 @@ MonoBehaviour:
   firingRate: 0.02
   switchInterval: 10
   cycle: 000000000100000002000000
+  clearOnSwitch: 0
+  angleOffset: -90
   fanCount: 9
   fanSpread: 120
-  circleCount: 18
-  arms: 6
-  spinSpeed: 180
-  angleOffset: -90
+  fanSwayAmplitude: 25
+  fanSwaySpeed: 1.2
+  circleCount: 20
+  circleFiringRate: 0.25
+  rosePetals: 5
+  roseSpin: 140
+  roseAmplitude: 45
+  roseSpeedMod: 0.35
+  roseBulletsPerTick: 1
 --- !u!1 &1976460619
 GameObject:
   m_ObjectHideFlags: 0

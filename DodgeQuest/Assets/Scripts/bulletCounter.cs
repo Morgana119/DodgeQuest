@@ -19,6 +19,6 @@ public class BulletCounterUI : MonoBehaviour
     private void UpdateAll(int total, int player, int enemy)
     {
         if (label != null)
-            label.text = $"Balas activas: {total}\nJugador: {player}   Enemigo: {enemy}";
+            label.text = $"Active Bullets: {total} \n\nPlayer: {player} \n\nEnemy: {enemy}";
     }
 }

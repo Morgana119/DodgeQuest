@@ -95,7 +95,7 @@ public class PlayerController : MonoBehaviour
 
     void ShootOne()
     {
-        if (playerBulletPrefab == null) { Debug.LogWarning("[Player] Falta asignar playerBulletPrefab"); return; }
+        if (playerBulletPrefab == null) return;
 
         Quaternion rot = Quaternion.Euler(0f, 0f, shootAngle);
         GameObject go = Instantiate(playerBulletPrefab, transform.position, rot);

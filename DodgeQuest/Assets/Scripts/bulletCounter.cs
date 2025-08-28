@@ -7,18 +7,18 @@ public class BulletCounterUI : MonoBehaviour
 
     void OnEnable()
     {
-        UpdateLabel(Bullet.ActiveCount);
-        Bullet.OnActiveCountChanged += UpdateLabel;
+        UpdateAll(Bullet.ActiveCount, Bullet.ActivePlayerCount, Bullet.ActiveEnemyCount);
+        Bullet.OnCountsChanged += UpdateAll;
     }
 
     void OnDisable()
     {
-        Bullet.OnActiveCountChanged -= UpdateLabel;
+        Bullet.OnCountsChanged -= UpdateAll;
     }
 
-    private void UpdateLabel(int count)
+    private void UpdateAll(int total, int player, int enemy)
     {
         if (label != null)
-            label.text = $"Balas activas: {count}";
+            label.text = $"Balas activas: {total}\nJugador: {player}   Enemigo: {enemy}";
     }
 }

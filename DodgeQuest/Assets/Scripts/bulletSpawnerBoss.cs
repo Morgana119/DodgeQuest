@@ -1,9 +1,22 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
-public class BulletSpawner : MonoBehaviour
+[RequireComponent(typeof(Collider2D))]
+public class BulletSpawnerBoss : MonoBehaviour
 {
-    public enum SpawnerType { Fan, CircleBurst, RoseStar }
+    public static event Action<int,int> OnBossHealthChanged;
+    public static event Action OnBossDefeated;
+
+    [Header("HP (Boss)")]
+    public int maxHP = 120;
+    public int currentHP;
+
+    [Header("Ventana de actividad (TimeManager)")]
+    public float startAt = 30f; // empieza a disparar
+    public float endAt   = 60f; // termina y se apaga
+
+    public enum SpawnerType { CircleBurst, RoseStar, Fan }
 
     [Header("Bullet Attributes")]
     public GameObject bullet;
@@ -11,12 +24,12 @@ public class BulletSpawner : MonoBehaviour
     public float speed = 6f;
 
     [Header("Spawner Attributes")]
-    [SerializeField] private SpawnerType spawnerType = SpawnerType.Fan;
+    [SerializeField] private SpawnerType spawnerType = SpawnerType.CircleBurst;
     [SerializeField] private float firingRate = 0.08f;
 
     [Header("Pattern Switching")]
     public float switchInterval = 10f;
-    public SpawnerType[] cycle = new SpawnerType[] { SpawnerType.Fan, SpawnerType.CircleBurst, SpawnerType.RoseStar };
+    public SpawnerType[] cycle = new SpawnerType[] { SpawnerType.CircleBurst, SpawnerType.RoseStar, SpawnerType.Fan };
     public bool clearOnSwitch = false;
 
     [Header("Orientación global")]
@@ -45,20 +58,48 @@ public class BulletSpawner : MonoBehaviour
     private float timer;
     private int cycleIndex;
     private float rosePhaseDeg;
+    private Coroutine switcher;
 
-    void Start()
+    void Awake()
     {
-        StartCoroutine(PatternSwitcher());
+        var col = GetComponent<Collider2D>();
+        col.isTrigger = true;
+    }
+
+    void OnEnable()
+    {
+        currentHP = Mathf.Max(1, maxHP);
+        OnBossHealthChanged?.Invoke(currentHP, maxHP);
+
+        timer = 0f;
+        cycleIndex = 0;
+
+        if (cycle != null && cycle.Length > 0)
+        {
+            SetPattern(cycle[cycleIndex]);
+            switcher = StartCoroutine(PatternSwitcher());
+        }
+    }
+
+    void OnDisable()
+    {
+        if (switcher != null) StopCoroutine(switcher);
+        switcher = null;
     }
 
     void Update()
     {
+        float t = TimeManager.Instance ? TimeManager.Instance.elapsed : 0f;
+
+        if (t < startAt) return;
+        if (t >= endAt) { enabled = false; return; }
+
         if (spawnerType == SpawnerType.RoseStar)
             rosePhaseDeg += roseSpin * Time.deltaTime;
 
         float currentRate =
             (spawnerType == SpawnerType.CircleBurst) ? circleFiringRate :
-            (spawnerType == SpawnerType.RoseStar)    ? roseFiringRate :
+            (spawnerType == SpawnerType.RoseStar)    ? roseFiringRate   :
                                                         firingRate;
 
         timer += Time.deltaTime;
@@ -73,12 +114,22 @@ public class BulletSpawner : MonoBehaviour
     {
         if (cycle == null || cycle.Length == 0) yield break;
 
+        // espera hasta ventana activa
+        while (TimeManager.Instance && TimeManager.Instance.elapsed < startAt)
+            yield return null;
+
         cycleIndex = 0;
         SetPattern(cycle[cycleIndex]);
 
         while (true)
         {
+            if (TimeManager.Instance && TimeManager.Instance.elapsed >= endAt) yield break;
+
             yield return new WaitForSeconds(switchInterval);
+
+            float t = TimeManager.Instance ? TimeManager.Instance.elapsed : 0f;
+            if (t < startAt || t >= endAt) continue;
+
             cycleIndex = (cycleIndex + 1) % cycle.Length;
             SetPattern(cycle[cycleIndex]);
         }
@@ -88,10 +139,7 @@ public class BulletSpawner : MonoBehaviour
     {
         spawnerType = next;
         timer = 0f;
-
-        if (spawnerType == SpawnerType.RoseStar)
-            rosePhaseDeg = 0f;
-
+        if (spawnerType == SpawnerType.RoseStar) rosePhaseDeg = 0f;
         if (clearOnSwitch) ClearExistingBullets();
     }
 
@@ -101,13 +149,13 @@ public class BulletSpawner : MonoBehaviour
 
         switch (spawnerType)
         {
-            case SpawnerType.Fan:         FireFan(); break;
             case SpawnerType.CircleBurst: FireCircleBurst(); break;
-            case SpawnerType.RoseStar:    FireRoseStar(); break;
+            case SpawnerType.RoseStar:    FireRoseStar();    break;
+            case SpawnerType.Fan:         FireFan();         break;
         }
     }
 
-    // PATRONES
+    // ===== PATRONES =====
     private void FireFan()
     {
         float sway = Mathf.Sin(Time.time * Mathf.PI * 2f * fanSwaySpeed) * fanSwayAmplitude;
@@ -174,6 +222,7 @@ public class BulletSpawner : MonoBehaviour
         var b = go.GetComponent<Bullet>();
         if (b)
         {
+            b.owner = Bullet.Owner.Enemy;
             b.speed = speed;
             b.bulletLife = bulletLife;
             b.rotation = rot.eulerAngles.z;
@@ -182,8 +231,30 @@ public class BulletSpawner : MonoBehaviour
 
     private void ClearExistingBullets()
     {
-        var all = FindObjectsByType<Bullet>(FindObjectsSortMode.None);
+#if UNITY_2022_2_OR_NEWER
+        var all = FindObjectsByType<Bullet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         foreach (var bb in all)
-            if (bb != null) Destroy(bb.gameObject);
+            if (bb != null && bb.owner == Bullet.Owner.Enemy) Destroy(bb.gameObject);
+#else
+        foreach (var bb in FindObjectsOfType<Bullet>())
+            if (bb != null && bb.owner == Bullet.Owner.Enemy) Destroy(bb.gameObject);
+#endif
+    }
+
+    // Daño por balas del player 
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        var bullet = other.GetComponent<Bullet>();
+        if (bullet != null && bullet.owner == Bullet.Owner.Player)
+        {
+            currentHP = Mathf.Max(0, currentHP - 1);
+            OnBossHealthChanged?.Invoke(currentHP, maxHP);
+
+            if (currentHP <= 0)
+            {
+                OnBossDefeated?.Invoke();
+                Destroy(gameObject);
+            }
+        }
     }
 }

@@ -2,9 +2,9 @@
 
 Un **bullet hell** con estética **dark fantasy**, donde un héroe solitario se enfrenta a hordas de enemigos y a un poderoso **Boss**.  
 
-Camino: Lunático
+**Camino:** Lunático
 
-Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?usp=sharing
+**Video:** https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?usp=sharing
 
 ---
 
@@ -23,7 +23,6 @@ Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?us
      - El **Boss muere** (victoria del jugador).  
      - El **jugador muere** (derrota).  
 
----
 
 ### 🗡️ Player
 - **HP inicial:** 30 (sin límite máximo).  
@@ -37,7 +36,6 @@ Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?us
 - **Invulnerabilidad breve** después de recibir un golpe (`hitInvuln`).  
 - **Curación dinámica:** +2 HP al eliminar un enemigo.  
 
----
 
 ### 👹 Enemigos
 - **Vida básica:** 3 HP.  
@@ -48,7 +46,6 @@ Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?us
   3. **Circle** → Una ráfaga circular de múltiples proyectiles.  
 - Los enemigos desaparecen si salen del área de juego o si son destruidos.  
 
----
 
 ### 💀 Boss
 - **HP inicial:** 120.  
@@ -61,7 +58,6 @@ Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?us
 - **Cambia de patrón cada 10s.**  
 - Al morir, el juego finaliza inmediatamente con la **victoria del jugador**.  
 
----
 
 ### 📊 Contadores (HUD)
 En pantalla se muestran los siguientes valores en tiempo real:  
@@ -74,20 +70,17 @@ En pantalla se muestran los siguientes valores en tiempo real:
 - **Boss HP** → vida actual del boss (durante Phase 2).  
 - **Time** → cronómetro global del nivel.  
 
----
 
 ### 🕹️ Controles
 - **Movimiento:** `WASD` o `Flechas`.  
 - **Disparo:** `Z` o `Space`.  
 - **Modo Lento (Focus):** `Shift`.  
 
----
 
 ### ⚔️ Condiciones de fin de juego
 - **Victoria:** derrotar al Boss antes de los 60 segundos.  
 - **Derrota:** el jugador pierde toda su vida.  
 
----
 
 ### ⚡ Aspectos técnicos
 - Implementación en **Unity** (C#).  
@@ -97,7 +90,6 @@ En pantalla se muestran los siguientes valores en tiempo real:
 - Sistema de eventos para actualizar **HUD** en tiempo real.  
 - Balas y entidades con lógica de auto-destrucción fuera del área de juego.  
 
----
 
 ## Turoriales / Refencias
 - https://www.youtube.com/watch?v=YNJM7rWbbxY&t=2s

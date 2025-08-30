@@ -4,7 +4,7 @@ Un **bullet hell** con estética **dark fantasy**, donde un héroe solitario se 
 
 Camino: Lunático
 
-Video: 
+Video: https://drive.google.com/file/d/171rz92kadnMO82IGnvBrx_JE_Ds3uJBn/view?usp=sharing
 
 ---
 
@@ -17,7 +17,7 @@ Video:
    - El jugador gana vida al derrotar enemigos (+2 HP por enemigo destruido).  
 
 2. **Phase 2 (Boss Fight, > 30s)**  
-   - Aparece el **Boss**, con vida propia (`maxHP = 200`).  
+   - Aparece el **Boss**, con vida propia (`maxHP = 120`).  
    - El Boss utiliza patrones de disparo más complejos, cambiando cada **10 segundos**.  
    - El juego termina si:
      - El **Boss muere** (victoria del jugador).  
@@ -51,7 +51,7 @@ Video:
 ---
 
 ### 💀 Boss
-- **HP inicial:** 200.  
+- **HP inicial:** 120.  
 - **Aparece en Phase 2 (30s).**  
 - **No deja de disparar** hasta que el jugador muera o sea derrotado.  
 - **Patrones de disparo cíclicos:**  

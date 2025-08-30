@@ -12,11 +12,7 @@ public class BulletSpawnerBoss : MonoBehaviour
     public int maxHP = 120;
     public int currentHP;
 
-    [Header("Ventana de actividad (TimeManager)")]
-    public float startAt = 30f; // empieza a disparar
-    public float endAt   = 60f; // termina y se apaga
-
-    public enum SpawnerType { CircleBurst, RoseStar, Fan }
+    public enum SpawnerType { Fan, CircleBurst, RoseStar}
 
     [Header("Bullet Attributes")]
     public GameObject bullet;
@@ -29,7 +25,7 @@ public class BulletSpawnerBoss : MonoBehaviour
 
     [Header("Pattern Switching")]
     public float switchInterval = 10f;
-    public SpawnerType[] cycle = new SpawnerType[] { SpawnerType.CircleBurst, SpawnerType.RoseStar, SpawnerType.Fan };
+    public SpawnerType[] cycle = new SpawnerType[] { SpawnerType.Fan, SpawnerType.CircleBurst, SpawnerType.RoseStar };
     public bool clearOnSwitch = false;
 
     [Header("Orientación global")]
@@ -59,6 +55,7 @@ public class BulletSpawnerBoss : MonoBehaviour
     private int cycleIndex;
     private float rosePhaseDeg;
     private Coroutine switcher;
+    private bool isActive = false;
 
     void Awake()
     {
@@ -73,26 +70,30 @@ public class BulletSpawnerBoss : MonoBehaviour
 
         timer = 0f;
         cycleIndex = 0;
+        isActive = true;
 
         if (cycle != null && cycle.Length > 0)
         {
             SetPattern(cycle[cycleIndex]);
             switcher = StartCoroutine(PatternSwitcher());
         }
+
+        Player.OnPlayerDied += HandlePlayerDiedStop;
     }
 
     void OnDisable()
     {
+        isActive = false;
+
         if (switcher != null) StopCoroutine(switcher);
         switcher = null;
+
+        Player.OnPlayerDied -= HandlePlayerDiedStop;
     }
 
     void Update()
     {
-        float t = TimeManager.Instance ? TimeManager.Instance.elapsed : 0f;
-
-        if (t < startAt) return;
-        if (t >= endAt) { enabled = false; return; }
+        if (!isActive) return;
 
         if (spawnerType == SpawnerType.RoseStar)
             rosePhaseDeg += roseSpin * Time.deltaTime;
@@ -114,21 +115,10 @@ public class BulletSpawnerBoss : MonoBehaviour
     {
         if (cycle == null || cycle.Length == 0) yield break;
 
-        // espera hasta ventana activa
-        while (TimeManager.Instance && TimeManager.Instance.elapsed < startAt)
-            yield return null;
-
-        cycleIndex = 0;
-        SetPattern(cycle[cycleIndex]);
-
-        while (true)
+        while (isActive)
         {
-            if (TimeManager.Instance && TimeManager.Instance.elapsed >= endAt) yield break;
-
             yield return new WaitForSeconds(switchInterval);
-
-            float t = TimeManager.Instance ? TimeManager.Instance.elapsed : 0f;
-            if (t < startAt || t >= endAt) continue;
+            if (!isActive) yield break;
 
             cycleIndex = (cycleIndex + 1) % cycle.Length;
             SetPattern(cycle[cycleIndex]);
@@ -139,23 +129,26 @@ public class BulletSpawnerBoss : MonoBehaviour
     {
         spawnerType = next;
         timer = 0f;
-        if (spawnerType == SpawnerType.RoseStar) rosePhaseDeg = 0f;
+
+        if (spawnerType == SpawnerType.RoseStar)
+            rosePhaseDeg = 0f;
+
         if (clearOnSwitch) ClearExistingBullets();
     }
 
     private void Fire()
     {
-        if (!bullet) return;
+        if (!bullet || !isActive) return;
 
         switch (spawnerType)
         {
+            case SpawnerType.Fan: FireFan(); break;
             case SpawnerType.CircleBurst: FireCircleBurst(); break;
-            case SpawnerType.RoseStar:    FireRoseStar();    break;
-            case SpawnerType.Fan:         FireFan();         break;
+            case SpawnerType.RoseStar: FireRoseStar(); break;
         }
     }
 
-    // ===== PATRONES =====
+    // PATRONES
     private void FireFan()
     {
         float sway = Mathf.Sin(Time.time * Mathf.PI * 2f * fanSwaySpeed) * fanSwayAmplitude;
@@ -203,7 +196,7 @@ public class BulletSpawnerBoss : MonoBehaviour
             {
                 float theta = i * step + rosePhaseDeg;
                 float r     = roseBaseRadius * (1f + roseRadiusAmp *
-                               Mathf.Sin(rosePetals * theta * Mathf.Deg2Rad));
+                                Mathf.Sin(rosePetals * theta * Mathf.Deg2Rad));
 
                 float shotAngle = angleOffset + theta;
                 Quaternion rot  = transform.rotation * Quaternion.Euler(0f, 0f, shotAngle);
@@ -231,14 +224,12 @@ public class BulletSpawnerBoss : MonoBehaviour
 
     private void ClearExistingBullets()
     {
-#if UNITY_2022_2_OR_NEWER
         var all = FindObjectsByType<Bullet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
         foreach (var bb in all)
-            if (bb != null && bb.owner == Bullet.Owner.Enemy) Destroy(bb.gameObject);
-#else
-        foreach (var bb in FindObjectsOfType<Bullet>())
-            if (bb != null && bb.owner == Bullet.Owner.Enemy) Destroy(bb.gameObject);
-#endif
+        {
+            if (bb != null && bb.owner == Bullet.Owner.Enemy)
+                Destroy(bb.gameObject);
+        }
     }
 
     // Daño por balas del player 
@@ -256,5 +247,11 @@ public class BulletSpawnerBoss : MonoBehaviour
                 Destroy(gameObject);
             }
         }
+    }
+
+    void HandlePlayerDiedStop()
+    {
+        isActive = false; 
+        ClearExistingBullets();
     }
 }

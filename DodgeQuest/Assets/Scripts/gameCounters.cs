@@ -7,7 +7,7 @@ public class GameCountersUI : MonoBehaviour
 
     int bulletsTotal, bulletsPlayer, bulletsEnemy;
     int enemiesActive;
-    int playerHP, playerMax;
+    int playerHP;
     int bossHP, bossMax;
 
     void OnEnable()
@@ -19,6 +19,7 @@ public class GameCountersUI : MonoBehaviour
         BulletSpawnerEnemy.OnEnemyCountChanged += UpdateEnemies;
 
         Player.OnPlayerHealthChanged += UpdatePlayerHP;
+
         BulletSpawnerBoss.OnBossHealthChanged += UpdateBossHP;
     }
 
@@ -48,10 +49,9 @@ public class GameCountersUI : MonoBehaviour
         enemiesActive = count;
     }
 
-    void UpdatePlayerHP(int hp, int max)
+    void UpdatePlayerHP(int hp)
     {
         playerHP = hp;
-        playerMax = max;
     }
 
     void UpdateBossHP(int hp, int max)
@@ -73,16 +73,17 @@ public class GameCountersUI : MonoBehaviour
             timeStr = $"\nTime: {m:00}:{s:00}";
         }
 
-        string hpPlayerStr = (playerMax > 0) ? $"Player HP: {playerHP}/{playerMax}" : "Player HP: --";
-        string hpBossStr   = (bossMax > 0)   ? $"Boss HP: {bossHP}/{bossMax}"       : "Boss HP: --";
+        string hpPlayerStr = $"Player HP: {playerHP}";                     
+        string hpBossStr   = (bossMax > 0) ? $"Boss HP: {bossHP}/{bossMax}"
+                                            : "Boss HP: --";
 
         label.text =
             $"Active Bullets: {bulletsTotal}\n" +
             $"Player: {bulletsPlayer}\n" +
-            $"Enemy: {bulletsEnemy}\n" + "\n" +
-            $"Active Enemies: {enemiesActive}\n" + "\n" +
+            $"Enemy: {bulletsEnemy}\n\n" +
+            $"Active Enemies: {enemiesActive}\n\n" +
             $"{hpPlayerStr}\n" +
-            $"{hpBossStr}" + "\n" +
+            $"{hpBossStr}\n" +
             timeStr;
     }
 }

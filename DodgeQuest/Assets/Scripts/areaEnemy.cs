@@ -45,11 +45,11 @@ public class AreaEnemy : MonoBehaviour
             var pos = new Vector3(x, y, 0f);
 
             var e = Instantiate(enemyPrefab, pos, Quaternion.identity);
+            Debug.Log($"[AreaEnemy] Spawned {e.name} at {pos}", this);
             alive.Add(e);
         }
     }
 
-    // Gizmos para ver el área (Scene view)
     // void OnDrawGizmos()
     // {
     //     Gizmos.color = Color.red;

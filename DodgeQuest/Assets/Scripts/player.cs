@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody2D))]
 public class Player : MonoBehaviour
 {
-    public static event Action<int,int> OnPlayerHealthChanged;
+    public static event Action<int> OnPlayerHealthChanged;
     public static event Action OnPlayerDied;
 
     [Header("Movimiento")]
@@ -24,12 +24,12 @@ public class Player : MonoBehaviour
     public float fireRate = 0.12f;
     public float bulletSpeed = 12f;
     public float bulletLife = 3f;
-    public float shootAngle = 90f; // 90° = hacia arriba
+    public float shootAngle = 90f; 
 
     [Header("HP")]
-    public int maxHP = 5;
+    public int startHP = 30;
     public int currentHP;
-    public float hitInvuln = 0.5f; // segundos de invulnerabilidad tras golpe
+    public float hitInvuln = 0.5f; 
 
     private InputAction moveAction;
     private InputAction fireAction;
@@ -40,6 +40,7 @@ public class Player : MonoBehaviour
 
     void Awake()
     {
+        // Inputs
         moveAction = new InputAction("Move");
         var wasd = moveAction.AddCompositeBinding("2DVector");
         wasd.With("Up", "<Keyboard>/w");
@@ -75,15 +76,24 @@ public class Player : MonoBehaviour
         fireAction.Enable();
         slowAction.Enable();
 
-        currentHP = Mathf.Max(1, maxHP);
-        OnPlayerHealthChanged?.Invoke(currentHP, maxHP);
+        currentHP = startHP;
+        OnPlayerHealthChanged?.Invoke(currentHP);
+
+        BulletSpawnerEnemy.OnEnemyKilled += HandleEnemyKilledHeal;
     }
 
     void OnDisable()
     {
+        BulletSpawnerEnemy.OnEnemyKilled -= HandleEnemyKilledHeal;
+        
         fireAction.Disable();
         slowAction.Disable();
         moveAction.Disable();
+    }
+
+    void HandleEnemyKilledHeal()
+    {
+        Heal(2);
     }
 
     void Update()
@@ -139,7 +149,7 @@ public class Player : MonoBehaviour
         transform.position = pos;
     }
 
-    // ====== Daño por bala enemiga ======
+    // Daño por bala enemiga
     void OnTriggerEnter2D(Collider2D other)
     {
         var bullet = other.GetComponent<Bullet>();
@@ -155,12 +165,18 @@ public class Player : MonoBehaviour
         lastHitTime = Time.time;
 
         currentHP = Mathf.Max(0, currentHP - dmg);
-        OnPlayerHealthChanged?.Invoke(currentHP, maxHP);
+        OnPlayerHealthChanged?.Invoke(currentHP);
 
         if (currentHP <= 0)
         {
             OnPlayerDied?.Invoke();
             gameObject.SetActive(false);
         }
+    }
+
+    public void Heal(int amount)
+    {
+        currentHP += amount;
+        OnPlayerHealthChanged?.Invoke(currentHP);
     }
 }

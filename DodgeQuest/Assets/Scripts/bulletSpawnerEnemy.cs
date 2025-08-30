@@ -3,11 +3,14 @@ using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
+
 public class BulletSpawnerEnemy : MonoBehaviour
 {
+    // Contadores globales (HUD)
     public static int ActiveCount { get; private set; }
     public static event Action<int> OnActiveCountChanged;
     public static event Action<int> OnEnemyCountChanged;
+    public static event Action OnEnemyKilled;
 
     [Header("Disparo - Prefab de bala")]
     public GameObject bulletPrefab;
@@ -34,14 +37,15 @@ public class BulletSpawnerEnemy : MonoBehaviour
     public int  hp = 3;
 
     [Header("Seguridad")]
-    public float offscreenPadding = 0.20f;
+    public float offscreenPadding = 0.20f; // kill si queda fuera de la cámara
 
     enum Pattern { Single, Fan3, Circle }
     Pattern current = Pattern.Single;
-    float   patternTimer = 0f;
-    float   fireTimer    = 0f;
+    float patternTimer = 0f;
+    float fireTimer = 0f;
     Transform player;
-    bool cullHookSet = false;
+    float aliveTime = 0f;
+    public float spawnGrace = 0.75f;
 
     void Awake()
     {
@@ -59,6 +63,7 @@ public class BulletSpawnerEnemy : MonoBehaviour
     {
         var p = transform.position;
         transform.position = new Vector3(p.x, p.y, 0f);
+        aliveTime = 0f;
 
         ActiveCount++;
         OnActiveCountChanged?.Invoke(ActiveCount);
@@ -70,12 +75,6 @@ public class BulletSpawnerEnemy : MonoBehaviour
         patternTimer = 0f;
         fireTimer = 0f;
         current = Pattern.Single;
-        
-        if (!cullHookSet)
-        {
-            LevelController.OnCullAllEnemies += HandleCullAll;
-            cullHookSet = true;
-        }
     }
 
     void OnDisable()
@@ -83,17 +82,13 @@ public class BulletSpawnerEnemy : MonoBehaviour
         ActiveCount = Mathf.Max(0, ActiveCount - 1);
         OnActiveCountChanged?.Invoke(ActiveCount);
         OnEnemyCountChanged?.Invoke(ActiveCount);
-
-        if (cullHookSet)
-        {
-            LevelController.OnCullAllEnemies -= HandleCullAll;
-            cullHookSet = false;
-        }
     }
 
     void Update()
     {
-        if (IsOutsideViewport())
+        aliveTime += Time.deltaTime;
+
+        if (aliveTime >= spawnGrace && IsOutsideViewport())
         {
             Destroy(gameObject);
             return;
@@ -125,9 +120,9 @@ public class BulletSpawnerEnemy : MonoBehaviour
 
         switch (current)
         {
-            case Pattern.Single: FireSingleAimed(); break;
-            case Pattern.Fan3:   FireFan3Aimed();   break;
-            case Pattern.Circle: FireCircleOriented(); break;
+            case Pattern.Single: FireSingleAimed();     break;
+            case Pattern.Fan3:   FireFan3Aimed();       break;
+            case Pattern.Circle: FireCircleOriented();  break;
         }
     }
 
@@ -147,10 +142,13 @@ public class BulletSpawnerEnemy : MonoBehaviour
     void FireCircleOriented()
     {
         if (circleCount <= 0) return;
+
         float baseAng = AimToPlayerDeg();
         float step = 360f / circleCount;
+
         int nearestIdx = Mathf.RoundToInt(baseAng / step);
         float start = nearestIdx * step;
+
         for (int i = 0; i < circleCount; i++)
             ShootAtAngle(start + step * i);
     }
@@ -203,7 +201,7 @@ public class BulletSpawnerEnemy : MonoBehaviour
         return (v.x < -pad || v.x > 1f + pad || v.y < -pad || v.y > 1f + pad);
     }
 
-    // Daño por balas del player
+    // Daño por balas del jugador
     void OnTriggerEnter2D(Collider2D other)
     {
         if (!destructible) return;
@@ -212,12 +210,11 @@ public class BulletSpawnerEnemy : MonoBehaviour
         if (bullet && bullet.owner == Bullet.Owner.Player)
         {
             hp--;
-            if (hp <= 0) Destroy(gameObject);
+            if (hp <= 0)
+            {
+                OnEnemyKilled?.Invoke();
+                Destroy(gameObject);
+            }
         }
-    }
-
-    void HandleCullAll()
-    {
-        if (this) Destroy(gameObject);
     }
 }

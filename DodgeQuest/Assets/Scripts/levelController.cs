@@ -3,18 +3,15 @@ using UnityEngine;
 public class LevelController : MonoBehaviour
 {
     public enum Phase { None, Phase1, Boss, End }
-    public static System.Action OnCullAllEnemies;
-    
+    bool gameOverTriggered = false;
+
     [Header("Spawners de Fase 1 (AreaEnemy)")]
     public AreaEnemy[] spawners;
 
     [Header("Temporización exacta (segundos)")]
     public float phase1EndAt = 30f;
-    public float bossDelay   = 1.0f;
-    public float gameEndAt   = 60f;
-
-    [Header("Transición")]
-    public bool clearOnSwitch = true;
+    public float bossDelay   = 1.0f; 
+    public float gameEndAt   = 60f;   
 
     [Header("Boss (Fase 2)")]
     public GameObject bossRoot;
@@ -29,70 +26,125 @@ public class LevelController : MonoBehaviour
 
     void Start()
     {
-        SetSpawnersEnabled(false);
-        if (bossRoot) bossRoot.SetActive(false);
-
+        // Timer global
         if (!TimeManager.Instance) gameObject.AddComponent<TimeManager>();
         TimeManager.Instance.ResetAndStart();
+
+        // Arranca en fase 1
+        CurrentPhase        = Phase.Phase1;
+        phase1Started       = true;
+        bossShown           = false;
+        bossTransitionDone  = false;
+        gameEnded           = false;
+
+        SetAllAreaSpawnersEnabled(true);
+        if (bossRoot) bossRoot.SetActive(false);
+
+        Player.OnPlayerDied += HandlePlayerDied;
+        BulletSpawnerBoss.OnBossDefeated += HandleBossDefeated;
+    }
+
+    void OnDestroy()
+    {
+        Player.OnPlayerDied -= HandlePlayerDied;
+        BulletSpawnerBoss.OnBossDefeated -= HandleBossDefeated;
     }
 
     void Update()
     {
         float t = TimeManager.Instance ? TimeManager.Instance.elapsed : 0f;
 
+        // Fase 1 
         if (!phase1Started && t >= 0f)
         {
             phase1Started = true;
             CurrentPhase = Phase.Phase1;
-            SetSpawnersEnabled(true);
-            if (logTransitions) Debug.Log("[Level] Phase 1 ON");
+            SetAllAreaSpawnersEnabled(true);
         }
 
+        // Transición a Boss
         if (!bossTransitionDone && t >= phase1EndAt)
         {
             bossTransitionDone = true;
             CurrentPhase = Phase.Boss;
 
-            SetSpawnersEnabled(false);
-
-            if (clearOnSwitch) ClearRemaining();
+            SetAllAreaSpawnersEnabled(false);
+            HardClearAllEnemiesAndEnemyBullets();
 
             bossEnableAt = t + Mathf.Max(0f, bossDelay);
-            if (logTransitions) Debug.Log($"[Level] Boss transition @ {t:F2}s, will show at {bossEnableAt:F2}s");
         }
 
+        // Enciende boss cuando toque
         if (!bossShown && bossEnableAt > 0f && t >= bossEnableAt)
         {
             bossShown = true;
             if (bossRoot) bossRoot.SetActive(true);
-            if (logTransitions) Debug.Log($"[Level] Boss ON @ {t:F2}s");
-        }
-
-        if (!gameEnded && t >= gameEndAt)
-        {
-            gameEnded = true;
-            CurrentPhase = Phase.End;
-
-            if (bossRoot) bossRoot.SetActive(false);
-            SetSpawnersEnabled(false);
-            ClearRemaining();
-
-            TimeManager.Instance.StopTimer();
-            if (logTransitions) Debug.Log($"[Level] GAME OVER @ {t:F2}s");
         }
     }
 
-    void SetSpawnersEnabled(bool enabled)
+    void SetAllAreaSpawnersEnabled(bool enabled)
     {
         if (spawners != null)
             foreach (var s in spawners)
                 if (s) s.gameObject.SetActive(enabled);
+
+        var all = FindObjectsByType<AreaEnemy>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var s in all)
+            if (s) s.gameObject.SetActive(enabled);
     }
 
-    void ClearRemaining()
+    // Destruye enemigos y balas enemigas visibles
+    void HardClearAllEnemiesAndEnemyBullets()
     {
-        OnCullAllEnemies?.Invoke();
-
         int cleared = 0;
+
+        // Enemigos normales
+        var enemies = FindObjectsByType<BulletSpawnerEnemy>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var e in enemies)
+        {
+            if (e)
+            {
+                Destroy(e.gameObject);
+                cleared++;
+            }
+        }
+
+        // Balas enemigas
+        var bullets = FindObjectsByType<Bullet>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        foreach (var b in bullets)
+        {
+            if (b && b.owner == Bullet.Owner.Enemy)
+            {
+                Destroy(b.gameObject);
+                cleared++;
+            }
+        }
+    }
+
+    void HandlePlayerDied()
+    {
+        if (gameOverTriggered) return;
+        gameOverTriggered = true;
+
+        CurrentPhase = Phase.End;
+        if (bossRoot) bossRoot.SetActive(false);
+        SetAllAreaSpawnersEnabled(false);
+        HardClearAllEnemiesAndEnemyBullets();
+
+        if (TimeManager.Instance) TimeManager.Instance.StopTimer();
+    }
+
+    // Fin por muerte del boss
+    void HandleBossDefeated()
+    {
+        if (gameOverTriggered) return;
+        gameOverTriggered = true;
+
+        CurrentPhase = Phase.End;
+        if (bossRoot) bossRoot.SetActive(false);
+        SetAllAreaSpawnersEnabled(false);
+        HardClearAllEnemiesAndEnemyBullets();
+
+        if (TimeManager.Instance) TimeManager.Instance.StopTimer();
     }
 }

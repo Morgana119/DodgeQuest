@@ -5,7 +5,7 @@ public class Bullet : MonoBehaviour
 {
     public enum Owner { Enemy, Player }
 
-    // === CONTADORES ===
+    // CONTADORES
     public static int ActiveCount { get; private set; }           
     public static int ActivePlayerCount { get; private set; }
     public static int ActiveEnemyCount  { get; private set; }
@@ -15,7 +15,7 @@ public class Bullet : MonoBehaviour
 
     [Header("Bullet Attributes")]
     public Owner owner = Owner.Enemy;
-    public float bulletLife = 3f;   // backup: tiempo máximo de vida
+    public float bulletLife = 3f; // backup: tiempo máximo de vida
     public float rotation = 0f;
     public float speed = 1f;
 
@@ -68,7 +68,7 @@ public class Bullet : MonoBehaviour
             return;
         }
 
-        // Destrucción por viewport (usa siempre Camera.main)
+        // Destrucción por viewport
         var cam = Camera.main;
         if (cam != null)
         {
